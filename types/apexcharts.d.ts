@@ -720,7 +720,7 @@ type ApexFill = {
   type?: string | string[]
   gradient?: {
     shade?: string
-    type?: string
+    type?: string | string[]
     shadeIntensity?: number
     gradientToColors?: string[]
     inverseColors?: boolean
@@ -1151,6 +1151,7 @@ type ApexGrid = {
   borderColor?: string
   strokeDashArray?: number
   position?: 'front' | 'back'
+  fill?: ApexFill
   xaxis?: {
     lines?: {
       show?: boolean
