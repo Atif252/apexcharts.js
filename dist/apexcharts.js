@@ -4583,7 +4583,7 @@
         var opts = this.opts;
         var graphics = new Graphics(this.ctx);
         var utils = new Utils$1();
-        var type = cnf.fill.gradient.type;
+        var type = Array.isArray(cnf.fill.gradient.type) ? cnf.fill.gradient.type[i] : cnf.fill.gradient.type;
         var gradientFrom = fillColor;
         var gradientTo;
         var opacityFrom = cnf.fill.gradient.opacityFrom === undefined ? fillOpacity : Array.isArray(cnf.fill.gradient.opacityFrom) ? cnf.fill.gradient.opacityFrom[i] : cnf.fill.gradient.opacityFrom;
@@ -11274,13 +11274,23 @@
             y1 = _ref3.y1,
             x2 = _ref3.x2,
             y2 = _ref3.y2,
-            type = _ref3.type;
+            type = _ref3.type,
+            fill = _ref3.fill;
         var w = this.w;
         var graphics = new Graphics(this.ctx);
         var offX = w.globals.barPadForNumericAxis;
         if (type === 'column' && w.config.xaxis.type === 'datetime') return;
-        var color = w.config.grid[type].colors[c];
-        var rect = graphics.drawRect(x1 - (type === 'row' ? offX : 0), y1, x2 + (type === 'row' ? offX * 2 : 0), y2, 0, color, w.config.grid[type].opacity);
+        var color, opacity;
+
+        if (fill) {
+          color = fill;
+          opacity = 1;
+        } else {
+          color = w.config.grid[type].colors[c];
+          opacity = w.config.grid[type].opacity;
+        }
+
+        var rect = graphics.drawRect(x1 - (type === 'row' ? offX : 0), y1, x2 + (type === 'row' ? offX * 2 : 0), y2, 0, color, opacity);
         this.elg.add(rect);
         rect.attr('clip-path', "url(#gridRectMask".concat(w.globals.cuid, ")"));
         rect.node.classList.add("apexcharts-grid-".concat(type));
@@ -11546,13 +11556,47 @@
     }, {
       key: "drawGridBands",
       value: function drawGridBands(xCount, tickAmount) {
-        var w = this.w; // rows background bands
+        var w = this.w;
+        var gridFill = this.ctx.w.config.grid.fill;
 
-        if (w.config.grid.row.colors !== undefined && w.config.grid.row.colors.length > 0) {
+        var fillContext = _objectSpread2(_objectSpread2({}, this.ctx), {}, {
+          w: _objectSpread2(_objectSpread2({}, this.ctx.w), {}, {
+            config: _objectSpread2(_objectSpread2({}, this.ctx.w.config), {}, {
+              fill: gridFill
+            })
+          })
+        });
+
+        var fill = new Fill(fillContext); // fill background band
+
+        if (w.config.grid.fill !== undefined) {
           var x1 = 0;
           var y1 = 0;
-          var y2 = w.globals.gridHeight / tickAmount;
           var x2 = w.globals.gridWidth;
+          var pathFill = fill.fillPath({
+            seriesNumber: 0
+          });
+          var y2 = w.globals.gridHeight;
+
+          this._drawGridBandRect({
+            c: 0,
+            x1: x1,
+            y1: y1,
+            x2: x2,
+            y2: y2,
+            type: 'row',
+            fill: pathFill
+          });
+        } // rows background bands
+
+
+        if (w.config.grid.row.colors !== undefined && w.config.grid.row.colors.length > 0) {
+          var _x5 = 0;
+          var _y5 = 0;
+
+          var _y6 = w.globals.gridHeight / tickAmount;
+
+          var _x6 = w.globals.gridWidth;
 
           for (var i = 0, c = 0; i < tickAmount; i++, c++) {
             if (c >= w.config.grid.row.colors.length) {
@@ -11561,26 +11605,26 @@
 
             this._drawGridBandRect({
               c: c,
-              x1: x1,
-              y1: y1,
-              x2: x2,
-              y2: y2,
+              x1: _x5,
+              y1: _y5,
+              x2: _x6,
+              y2: _y6,
               type: 'row'
             });
 
-            y1 = y1 + w.globals.gridHeight / tickAmount;
+            _y5 = _y5 + w.globals.gridHeight / tickAmount;
           }
         } // columns background bands
 
 
         if (w.config.grid.column.colors !== undefined && w.config.grid.column.colors.length > 0) {
           var xc = !w.globals.isBarHorizontal && (w.config.xaxis.type === 'category' || w.config.xaxis.convertedCatToNumeric) ? xCount - 1 : xCount;
-          var _x5 = w.globals.padHorizontal;
-          var _y5 = 0;
+          var _x7 = w.globals.padHorizontal;
+          var _y7 = 0;
 
-          var _x6 = w.globals.padHorizontal + w.globals.gridWidth / xc;
+          var _x8 = w.globals.padHorizontal + w.globals.gridWidth / xc;
 
-          var _y6 = w.globals.gridHeight;
+          var _y8 = w.globals.gridHeight;
 
           for (var _i2 = 0, _c = 0; _i2 < xCount; _i2++, _c++) {
             if (_c >= w.config.grid.column.colors.length) {
@@ -11589,14 +11633,14 @@
 
             this._drawGridBandRect({
               c: _c,
-              x1: _x5,
-              y1: _y5,
-              x2: _x6,
-              y2: _y6,
+              x1: _x7,
+              y1: _y7,
+              x2: _x8,
+              y2: _y8,
               type: 'column'
             });
 
-            _x5 = _x5 + w.globals.gridWidth / xc;
+            _x7 = _x7 + w.globals.gridWidth / xc;
           }
         }
       }
@@ -22401,6 +22445,10 @@
 
         if (this.zeroY > w.globals.gridHeight || w.config.plotOptions.area.fillTo === 'end') {
           this.areaBottomY = w.globals.gridHeight;
+        }
+
+        if (w.config.plotOptions.area.fillTo === 'start') {
+          this.areaBottomY = 0;
         }
 
         this.categoryAxisCorrection = this.xDivision / 2; // el to which series will be drawn
